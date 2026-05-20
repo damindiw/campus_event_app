@@ -99,7 +99,7 @@ class AdminPanelScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.lightBlue,
+      backgroundColor: Colors.lightBlue[100],
       appBar: AppBar(
         // Added the back arrow button to the top left side
         leading: IconButton(
@@ -164,7 +164,7 @@ class AdminPanelScreen extends StatelessWidget {
                 Text(
                   'Manage and orchestrate upcoming university campus features smoothly.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  style: TextStyle(color: Colors.black, fontSize: 14),
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16.0),

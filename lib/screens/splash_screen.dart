@@ -70,6 +70,8 @@ class SplashScreen extends StatelessWidget {
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(250, 55),
+                    backgroundColor: Colors.indigo,
+                    elevation: 2,
                     side: const BorderSide(color: Colors.indigo, width: 2),
                   ),
                   onPressed: () {
@@ -80,8 +82,8 @@ class SplashScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.admin_panel_settings, color: Colors.indigo),
-                  label: const Text('Admin Portal', style: TextStyle(fontSize: 18, color: Colors.indigo)),
+                  icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
+                  label: const Text('Admin Portal', style: TextStyle(fontSize: 18, color: Colors.white)),
                 ),
               ],
             ),

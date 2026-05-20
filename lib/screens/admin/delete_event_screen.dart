@@ -7,7 +7,7 @@ class DeleteEventScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Colors.lightBlue[100],
       appBar: AppBar(
         title: const Text('Deleted Events Log', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.indigo,

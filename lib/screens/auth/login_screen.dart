@@ -84,12 +84,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue, // Matches your layout canvas color
+      backgroundColor: Colors.lightBlue[100], // Matches your layout canvas color
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.indigo),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -155,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Text(
                       "Don't have an account?",
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: Colors.black),
                     ),
                     const SizedBox(height: 8),
                     TextButton(

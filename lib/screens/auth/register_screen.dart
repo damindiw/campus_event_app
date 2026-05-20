@@ -78,7 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.lightBlue,
+      backgroundColor: Colors.lightBlue[100],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

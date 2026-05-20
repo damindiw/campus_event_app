@@ -23,36 +23,26 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     _checkRegistrationStatus();
   }
 
-  // Verifies if this student has already clicked register previously
   void _checkRegistrationStatus() async {
     try {
-      DocumentSnapshot userDoc =
-          await FirebaseFirestore.instance.collection('Users').doc(_currentUid).get();
-
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(_currentUid).get();
       if (userDoc.exists && userDoc.data() != null) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         List<dynamic> registeredEvents = data['registeredEvents'] ?? [];
         if (registeredEvents.contains(widget.eventId)) {
-          setState(() {
-            _isAlreadyRegistered = true;
-          });
+          setState(() => _isAlreadyRegistered = true);
         }
       }
     } catch (e) {
       debugPrint("Error checking registration status: $e");
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
-  // Handles updating the student array inside Firestore securely and returns to the home feed
   void _registerForEvent() async {
     setState(() => _isLoading = true);
-
     try {
-      // Set with merge handles fields safely even if 'registeredEvents' doesn't exist yet
       await FirebaseFirestore.instance.collection('Users').doc(_currentUid).set({
         'registeredEvents': FieldValue.arrayUnion([widget.eventId])
       }, SetOptions(merge: true));
@@ -63,26 +53,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       });
 
       if (mounted) {
-        // 1. Show a quick confirmation message to the student
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully Registered for this Event!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
+          const SnackBar(content: Text('Successfully Registered!'), backgroundColor: Colors.green),
         );
-
-        // 2. Automatically navigate back to the home screen showing upcoming events
         Navigator.pop(context);
       }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Registration failed: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Registration failed: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -91,69 +71,80 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.lightBlue[100],
       appBar: AppBar(
-        title: const Text('EVENT DETAILS', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('EVENT DETAILS', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.indigo,
-        iconTheme: const IconThemeData(color: Colors.white),
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Center(
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 500),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade400, style: BorderStyle.solid, width: 1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.eventData['eventName'] ?? widget.eventData['eventName'] ?? 'eventName',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.indigo),
-                      ),
-                      const SizedBox(height: 16),
-                      Text('Date: ${widget.eventData['date'] ?? 'N/A'}', style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Text('Time: ${widget.eventData['time'] ?? 'N/A'}', style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 8),
-                      Text('Location: ${widget.eventData['location'] ?? 'N/A'}', style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 16),
-                      const Text('Description:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.eventData['description'] ?? 'No description provided.',
-                        style: TextStyle(fontSize: 15, color: Colors.grey.shade800),
-                      ),
-                      const SizedBox(height: 24),
-                      Center(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.black, width: 1),
-                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.eventData['eventName'] ?? 'Event Title',
+                            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.indigo),
                           ),
-                          onPressed: _isAlreadyRegistered ? null : _registerForEvent,
-                          child: Text(
-                            _isAlreadyRegistered ? 'Registered ✔' : '[ Register ]',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: _isAlreadyRegistered ? Colors.grey : Colors.black,
+                          const Divider(height: 30, thickness: 1.5),
+                          _buildDetailRow(Icons.calendar_today, "Date: ${widget.eventData['date'] ?? 'N/A'}"),
+                          _buildDetailRow(Icons.access_time, "Time: ${widget.eventData['time'] ?? 'N/A'}"),
+                          _buildDetailRow(Icons.location_on, "Location: ${widget.eventData['location'] ?? 'N/A'}"),
+                          const SizedBox(height: 24),
+                          const Text('Description', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.eventData['description'] ?? 'No description provided.',
+                            style: TextStyle(fontSize: 15, color: Colors.grey[800], height: 1.5),
+                          ),
+                          const SizedBox(height: 32),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isAlreadyRegistered ? null : _registerForEvent,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _isAlreadyRegistered ? Colors.white : Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: Text(
+                                _isAlreadyRegistered ? 'Registered ✔' : 'Register Now',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.indigo),
+          const SizedBox(width: 12),
+          Text(text, style: const TextStyle(fontSize: 16)),
+        ],
+      ),
     );
   }
 }

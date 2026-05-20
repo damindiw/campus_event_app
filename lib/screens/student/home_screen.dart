@@ -25,10 +25,16 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         backgroundColor: Colors.indigo,
         centerTitle: true,
+        // REMOVED THE FAULTY LEADING ICON BUTTON SO NAVIGATION HISTORY STAYS CLEAN
         actions: [
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: Colors.white),
-            onPressed: () async => await FirebaseAuth.instance.signOut(),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              }
+            },
           )
         ],
       ),
@@ -55,10 +61,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // TAB 1: Display all events posted by the admin
+  // TAB 1: Display all events posted by the admin (Filtering out deleted ones)
   Widget _buildAllEventsTab() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('Events').snapshots(),
+      // Filters database snapshots in real-time to ignore any item tagged as soft-deleted
+      stream: FirebaseFirestore.instance
+          .collection('Events')
+          .where('isDeleted', isNotEqualTo: true)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -100,7 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
           return const Center(child: Text('You haven\'t registered for any events yet.'));
         }
 
-        // Fetch events whose IDs are inside the user's registration list
         return FutureBuilder<QuerySnapshot>(
           future: FirebaseFirestore.instance
               .collection('Events')
@@ -114,11 +123,21 @@ class _HomeScreenState extends State<HomeScreen> {
               return const Center(child: Text('Registered events data unavailable.'));
             }
 
+            // Client-side filter fallback ensuring even registered views hide soft-deleted events
+            var liveRegisteredDocs = eventSnapshot.data!.docs.where((doc) {
+              var data = doc.data() as Map<String, dynamic>;
+              return data['isDeleted'] != true;
+            }).toList();
+
+            if (liveRegisteredDocs.isEmpty) {
+              return const Center(child: Text('You haven\'t registered for any active events yet.'));
+            }
+
             return ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: eventSnapshot.data!.docs.length,
+              itemCount: liveRegisteredDocs.length,
               itemBuilder: (context, index) {
-                var doc = eventSnapshot.data!.docs[index];
+                var doc = liveRegisteredDocs[index];
                 Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
                 return _buildEventCard(doc.id, data);

@@ -1,53 +1,179 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'register_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final String role; // Accepts 'student' or 'admin'
+
+  const LoginScreen({super.key, required this.role});
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
-  void _login() async {
-  if (_formKey.currentState!.validate()) {
-    try {
-      await AuthService().loginWithEmail(
-        _email.text.trim(), 
-        _password.text.trim()
+  void _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter both email and password')),
       );
-      // No extra navigation line is needed here because AuthGate in main.dart 
-      // automatically detects the login state change and switches screens!
-    } catch (e) {
-      if (mounted) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      var user = await _authService.signIn(email, password);
+      
+      if (user != null) {
+        if (!mounted) return;
+
+        // Double check the database to confirm they match the role they are trying to log into
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          String assignedRole = userDoc.get('role') ?? 'student';
+
+          if (assignedRole != widget.role) {
+            // Log them out if they try to access the wrong portal
+            await FirebaseAuth.instance.signOut();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Access Denied: You are not registered as an ${widget.role}.')),
+            );
+            return;
+          }
+        }
+
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"))
+          const SnackBar(content: Text('Welcome back!')),
         );
+
+        // ==================== THE AUTOMATIC ROUTING FIX ====================
+        // This removes the login overlay card instantly so the AuthGate's 
+        // underlying screen choice (Admin Panel) is shown immediately.
+        Navigator.pop(context);
+        // ===================================================================
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
-}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextFormField(controller: _email, decoration: const InputDecoration(labelText: "Email"), validator: (v)=>v!.isEmpty?"Required":null),
-              TextFormField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: "Password"), validator: (v)=>v!.isEmpty?"Required":null),
-              const SizedBox(height: 20),
-              ElevatedButton(onPressed: _login, child: const Text("Login")),
-              TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())), child: const Text("Register instead"))
-            ],
+      backgroundColor: Colors.blue, // Matches your layout canvas color
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(13),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '${widget.role[0].toUpperCase()}${widget.role.substring(1)} Login',
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.indigo),
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    prefixIcon: Icon(Icons.lock_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Login', style: TextStyle(fontSize: 16)),
+                ),
+                const SizedBox(height: 24),
+                Column(
+                  children: [
+                    const Text(
+                      "Don't have an account?",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => RegisterScreen(role: widget.role)),
+                        );
+                      },
+                      child: const Text(
+                        'Register',
+                        style: TextStyle(color: Colors.indigo, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

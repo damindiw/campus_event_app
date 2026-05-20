@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/database_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/event_model.dart';
+import '../../models/user_model.dart';
 import '../admin/admin_panel_screen.dart';
 import 'event_details_screen.dart';
 import 'my_events_screen.dart';
@@ -18,17 +19,26 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Campus Events"),
         actions: [
-          IconButton(icon: const Icon(Icons.bookmark), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyEventsScreen()))),
-          FutureBuilder(
+          IconButton(
+            icon: const Icon(Icons.bookmark), 
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyEventsScreen())),
+          ),
+          FutureBuilder<UserModel?>(
             future: AuthService().getUserProfile(user?.uid ?? ''),
             builder: (context, snapshot) {
               if (snapshot.hasData && snapshot.data!.role == 'admin') {
-                return IconButton(icon: const Icon(Icons.admin_panel_settings), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPanelScreen())));
+                return IconButton(
+                  icon: const Icon(Icons.admin_panel_settings), 
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPanelScreen())),
+                );
               }
               return const SizedBox();
             },
           ),
-          IconButton(icon: const Icon(Icons.logout), onPressed: () => AuthService().signOut())
+          IconButton(
+            icon: const Icon(Icons.logout), 
+            onPressed: () => AuthService().signOut(),
+          )
         ],
       ),
       body: StreamBuilder<List<EventModel>>(
